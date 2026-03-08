@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>闪电记账 - 极简财务助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a0c] text-gray-100 flex flex-col min-h-screen">
+    
+    <!-- [明细] 首页 -->
+    <div id="page-home" class="page active animate-slide-in">
+        <header class="bg-[#121214] p-6 shadow-lg border-b border-gray-800">
+            <div class="max-w-md mx-auto">
+                <h1 class="text-xl font-bold text-center mb-6 text-gray-200">本月支出进度</h1>
+                <div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12" fill="transparent" class="text-gray-800" />
+                        <circle id="budget-ring" cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12" fill="transparent" stroke-dasharray="502.65" stroke-dashoffset="502.65" class="text-blue-500 transition-all duration-500 ease-out" />
+                    </svg>
+                    <div class="absolute text-center">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest">剩余预算</div>
+                        <div id="budget-remaining" class="text-3xl font-bold text-blue-400">¥0.00</div>
+                        <div id="budget-total" class="text-[10px] text-gray-500 mt-1 font-mono">总计 ¥3,000.00</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-md mx-auto w-full p-4 pb-24">
+            <section class="mb-8 bg-[#1c1c1e] p-5 rounded-3xl shadow-xl border border-gray-800">
+                <h2 class="text-xs font-semibold text-gray-500 mb-4 uppercase tracking-wider">闪电记账</h2>
+                <form id="add-transaction-form" class="space-y-4">
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">¥</span>
+                            <input type="number" id="amount-input" placeholder="0.00" step="0.01" required class="w-full pl-8 pr-4 py-3 bg-[#2c2c2e] border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-lg font-semibold text-white placeholder-gray-600">
+                        </div>
+                        <select id="category-select" class="px-3 py-3 bg-[#2c2c2e] border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-sm text-gray-200">
+                            <option value="餐饮">🍔 餐饮</option>
+                            <option value="交通">🚗 交通</option>
+                            <option value="购物">🛍️ 购物</option>
+                            <option value="娱乐">🎮 娱乐</option>
+                            <option value="医疗">🏥 医疗</option>
+                            <option value="其他">📦 其他</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-lg shadow-blue-900/20 tap-active active:scale-[0.98] transition-all">记录支出</button>
+                </form>
+            </section>
+
+            <section>
+                <div class="flex justify-between items-center mb-4 px-1">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">最近流水</h2>
+                    <button class="text-xs text-blue-400 font-medium">全部记录</button>
+                </div>
+                <div id="transaction-list" class="space-y-3"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- [图表] 页面 -->
+    <div id="page-chart" class="page animate-slide-in">
+        <header class="bg-[#121214] p-6 shadow-lg border-b border-gray-800">
+            <h1 class="text-xl font-bold text-center text-gray-200">收支统计</h1>
+        </header>
+        <main class="max-w-md mx-auto w-full p-4 pb-24">
+            <div class="bg-[#1c1c1e] p-6 rounded-3xl border border-gray-800 mb-6">
+                <h3 class="text-sm text-gray-400 mb-4">支出分布 (本月)</h3>
+                <div class="flex items-end justify-around h-40 gap-2 mb-4">
+                    <div class="w-full bg-blue-500/20 rounded-t-lg relative group">
+                        <div class="absolute bottom-0 w-full bg-blue-500 rounded-t-lg transition-all duration-700" style="height: 65%"></div>
+                        <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100">餐饮</span>
+                    </div>
+                    <div class="w-full bg-emerald-500/20 rounded-t-lg relative group">
+                        <div class="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg transition-all duration-700" style="height: 20%"></div>
+                        <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100">交通</span>
+                    </div>
+                    <div class="w-full bg-purple-500/20 rounded-t-lg relative group">
+                        <div class="absolute bottom-0 w-full bg-purple-500 rounded-t-lg transition-all duration-700" style="height: 45%"></div>
+                        <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100">购物</span>
+                    </div>
+                    <div class="w-full bg-amber-500/20 rounded-t-lg relative group">
+                        <div class="absolute bottom-0 w-full bg-amber-500 rounded-t-lg transition-all duration-700" style="height: 10%"></div>
+                        <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100">娱乐</span>
+                    </div>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-500 uppercase tracking-tighter px-1">
+                    <span>餐饮</span><span>交通</span><span>购物</span><span>娱乐</span>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-[#1c1c1e] p-4 rounded-2xl border border-gray-800 flex justify-between items-center">
+                    <span class="text-sm">本月总计支出</span>
+                    <span class="font-bold text-red-400" id="chart-total-spent">¥0.00</span>
+                </div>
+                <div class="bg-[#1c1c1e] p-4 rounded-2xl border border-gray-800 flex justify-between items-center">
+                    <span class="text-sm">日均支出</span>
+                    <span class="font-bold text-gray-200" id="chart-avg-spent">¥0.00</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- [分类] 页面 -->
+    <div id="page-category" class="page animate-slide-in">
+        <header class="bg-[#121214] p-6 shadow-lg border-b border-gray-800">
+            <h1 class="text-xl font-bold text-center text-gray-200">分类管理</h1>
+        </header>
+        <main class="max-w-md mx-auto w-full p-4 pb-24">
+            <div class="bg-[#1c1c1e] p-5 rounded-3xl border border-gray-800 mb-6">
+                <h3 class="text-xs font-semibold text-gray-500 mb-4 uppercase tracking-wider">常用分类</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-gray-700">
+                        <span class="text-2xl">🍔</span>
+                        <span class="text-xs text-gray-300">餐饮</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-gray-700">
+                        <span class="text-2xl">🚗</span>
+                        <span class="text-xs text-gray-300">交通</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-gray-700">
+                        <span class="text-2xl">🛍️</span>
+                        <span class="text-xs text-gray-300">购物</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-gray-700">
+                        <span class="text-2xl">🎮</span>
+                        <span class="text-xs text-gray-300">娱乐</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-gray-700">
+                        <span class="text-2xl">🏥</span>
+                        <span class="text-xs text-gray-300">医疗</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 bg-[#2c2c2e] rounded-2xl border border-dashed border-gray-600">
+                        <span class="text-2xl text-gray-500">+</span>
+                        <span class="text-[10px] text-gray-500">添加</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[#1c1c1e] p-5 rounded-3xl border border-gray-800">
+                <h3 class="text-xs font-semibold text-gray-500 mb-4 uppercase tracking-wider">预算设置</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase mb-2 block">月度总预算</label>
+                        <input type="number" id="setting-budget" value="3000" class="w-full bg-[#2c2c2e] border-none rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="save-budget-btn" class="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-all">保存设置</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- [我] 页面 -->
+    <div id="page-profile" class="page animate-slide-in">
+        <header class="bg-[#121214] p-10 flex flex-col items-center border-b border-gray-800 shadow-xl">
+            <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-3xl font-bold mb-4 shadow-lg shadow-blue-900/40">
+                ⚡️
+            </div>
+            <h1 class="text-xl font-bold text-gray-200">闪电用户</h1>
+            <p class="text-xs text-gray-500 mt-1">已累计记账 365 天</p>
+        </header>
+        <main class="max-w-md mx-auto w-full p-4 pb-24">
+            <div class="bg-[#1c1c1e] rounded-3xl border border-gray-800 overflow-hidden divide-y divide-gray-800">
+                <div class="p-4 flex justify-between items-center hover:bg-[#2c2c2e] transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-400">📊</span>
+                        <span class="text-sm">数据备份与导出</span>
+                    </div>
+                    <span class="text-gray-600">›</span>
+                </div>
+                <div class="p-4 flex justify-between items-center hover:bg-[#2c2c2e] transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-400">🔔</span>
+                        <span class="text-sm">记账提醒</span>
+                    </div>
+                    <span class="text-gray-600">›</span>
+                </div>
+                <div class="p-4 flex justify-between items-center hover:bg-[#2c2c2e] transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-400">🛡️</span>
+                        <span class="text-sm">隐私保护</span>
+                    </div>
+                    <span class="text-gray-600">›</span>
+                </div>
+                <div class="p-4 flex justify-between items-center hover:bg-[#2c2c2e] transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-400">ℹ️</span>
+                        <span class="text-sm">关于闪电记账</span>
+                    </div>
+                    <span class="text-xs text-gray-500">v1.0.0</span>
+                </div>
+            </div>
+            <div class="mt-8 px-4 text-center">
+                <p class="text-[10px] text-gray-600">极简主义者的财务控制工具</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#121214]/90 backdrop-blur-md border-t border-gray-800 safe-area-bottom z-50">
+        <div class="max-w-md mx-auto flex justify-around p-2">
+            <button data-page="home" class="nav-btn flex flex-col items-center p-2 text-blue-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                <span class="text-[10px] mt-1 font-medium">明细</span>
+            </button>
+            <button data-page="chart" class="nav-btn flex flex-col items-center p-2 text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                <span class="text-[10px] mt-1 font-medium">图表</span>
+            </button>
+            <button data-page="category" class="nav-btn flex flex-col items-center p-2 text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                <span class="text-[10px] mt-1 font-medium">分类</span>
+            </button>
+            <button data-page="profile" class="nav-btn flex flex-col items-center p-2 text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span class="text-[10px] mt-1 font-medium">我</span>
+            </button>
+        </div>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
