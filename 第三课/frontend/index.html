@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项管理 - Todo Manager (Dark)</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="app" class="max-w-2xl mx-auto py-10 px-4">
+        <h1 class="text-3xl font-bold text-center text-blue-400 mb-8">待办事项管理</h1>
+        
+        <!-- 标签页切换 -->
+        <div class="flex border-b border-gray-700 mb-6">
+            <button 
+                @click="currentTab = 'tasks'"
+                :class="{'border-b-2 border-blue-400 text-blue-400': currentTab === 'tasks', 'text-gray-400': currentTab !== 'tasks'}"
+                class="px-6 py-2 font-medium transition-colors"
+            >
+                任务列表
+            </button>
+            <button 
+                @click="currentTab = 'history'"
+                :class="{'border-b-2 border-blue-400 text-blue-400': currentTab === 'history', 'text-gray-400': currentTab !== 'history'}"
+                class="px-6 py-2 font-medium transition-colors"
+            >
+                历史统计
+            </button>
+        </div>
+
+        <!-- 任务列表视图 -->
+        <div v-if="currentTab === 'tasks'">
+            <!-- 添加任务 -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-6 border border-gray-700">
+                <div class="flex gap-2">
+                    <input 
+                        v-model="newTodo" 
+                        @keyup.enter="addTodo"
+                        type="text" 
+                        placeholder="输入新的待办事项..." 
+                        class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
+                    >
+                    <button 
+                        @click="addTodo"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors"
+                    >
+                        添加
+                    </button>
+                </div>
+            </div>
+
+            <!-- 任务列表展示 -->
+            <div class="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
+                <div v-if="loading" class="p-8 text-center text-gray-500">
+                    加载中...
+                </div>
+                <ul v-else class="divide-y divide-gray-700">
+                    <li v-for="todo in todos" :key="todo.id" class="p-4 flex items-center justify-between hover:bg-gray-700 transition-colors">
+                        <div class="flex items-center gap-3 flex-1">
+                            <input 
+                                type="checkbox" 
+                                :checked="todo.status === 1"
+                                @change="toggleStatus(todo)"
+                                class="w-5 h-5 bg-gray-700 border-gray-600 rounded text-blue-500 focus:ring-blue-600 focus:ring-offset-gray-800"
+                            >
+                            <span 
+                                :class="{'line-through text-gray-500': todo.status === 1, 'text-gray-200': todo.status === 0}"
+                                class="text-lg"
+                            >
+                                {{ todo.title }}
+                            </span>
+                        </div>
+                        <button 
+                            @click="deleteTodo(todo.id)"
+                            class="text-red-400 hover:text-red-500 px-2 py-1"
+                        >
+                            删除
+                        </button>
+                    </li>
+                </ul>
+                <div v-if="!loading && todos.length === 0" class="p-8 text-center text-gray-500">
+                    暂无待办事项，快去添加一个吧！
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史统计视图 -->
+        <div v-if="currentTab === 'history'">
+            <div class="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
+                <div class="p-6 border-b border-gray-700">
+                    <h2 class="text-xl font-semibold text-blue-400">每日任务统计 (只读)</h2>
+                </div>
+                <div class="p-6">
+                    <div v-if="loading" class="text-center text-gray-500 py-4">统计数据加载中...</div>
+                    <div v-else-if="Object.keys(historyStats).length === 0" class="text-center text-gray-500 py-4">暂无历史数据</div>
+                    <div v-else class="space-y-4">
+                        <div v-for="(count, date) in historyStats" :key="date" class="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
+                            <span class="text-gray-300 font-mono">{{ date }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 bg-blue-900 text-blue-200 rounded-full text-sm">
+                                    {{ count }} 个任务
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-900/50 p-4 text-xs text-gray-500 text-center italic">
+                    * 历史统计数据基于任务创建日期自动生成，不可编辑
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
